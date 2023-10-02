@@ -28,32 +28,12 @@ def compute_g(list_of_timestamps:list, normal_hist:list, n_edges:list, crash_his
     normal_sum = 0
     crash_sum = 0
     for i in range(0,len(list_of_timestamps)):
-        #left = 0
-        #right = left+1
-
-
         if n_edges[0] <= list_of_timestamps[i] <= n_edges[-1]:
             step = (n_edges[-1]-n_edges[0])/len(n_edges)
             normal_sum += normal_hist[int(list_of_timestamps[i]//(step+n_edges[0]))]
-            # while right <= len(n_edges)-1:
-            #     if n_edges[left] <= list_of_timestamps[i] <= n_edges[right]:
-            #         normal_sum += normal_hist[left]
-            #         break
-            #     left += 1
-            #     right += 1
-        #left = 0
-        #right = left+1
         if c_edges[0] <= list_of_timestamps[i] <= c_edges[-1]:
             step = (c_edges[-1]-c_edges[0])/len(c_edges)
-            crash_sum += crash_hist[int(list_of_timestamps[i]//(step+c_edges[0]))]
-            # while right <= len(c_edges)-1:
-            #     if c_edges[left] <= list_of_timestamps[i] <= c_edges[right]:
-            #         crash_sum += crash_hist[left]
-            #         break
-            #     left += 1
-            #     right += 1
-
-        
+            crash_sum += crash_hist[int(list_of_timestamps[i]//(step+c_edges[0]))]    
     return [normal_sum, crash_sum]
 
 def sliding_window(items, size):
@@ -64,12 +44,14 @@ def main():
     #1. read crashes from  csv files
     #region
     try:
-        crash_1 = read_from_file("1.csv")
-        crash_2 = read_from_file("2.csv")
+        crash_1 = read_from_file('1.csv')
+        crash_2 = read_from_file('2.csv')
     except OSError as err:
         print("Oops OSError", err)
+        return
     except ValueError as err:
         print("Oops ValueError", err)
+        return
     except Exception as err:
         print("Oops Exception", err)
         return
