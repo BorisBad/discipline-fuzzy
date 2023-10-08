@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 import itertools
-from timeit import default_timer as timer
+#from timeit import default_timer as timer
 from multiprocessing import Pool
-import os
-import datetime
+#import os
+#import datetime
 
 glob_workers = 4
 
@@ -60,7 +60,7 @@ def find_answer(n:int,m:int,k:int):
         print("Oops Exception", err)
         return
 
-    step = datetime.datetime.now()
+    #step = datetime.datetime.now()
     answer = pd.DataFrame(columns=['n','m','k','g1_1','g2_1','start_1','end_1','g1_2','g2_2','start_2','end_2'])
     normal_work = np.histogram(crash_1['Values'].iloc[0:n],bins=m)
     normal_work_hist = normal_work[0]/sum(normal_work[0])
@@ -85,7 +85,7 @@ def find_answer(n:int,m:int,k:int):
                                     res2[1]]], columns=answer.columns), answer],
                     ignore_index=True
                 )
-    print(f"id{os.getpid()}:time{datetime.datetime.now()-step}, {n,m,k}")
+    #print(f"id{os.getpid()}:time{datetime.datetime.now()-step}, {n,m,k}")
     return answer
 
 def collect_results(answer:pd.DataFrame, tasks:list):
@@ -109,8 +109,8 @@ def main():
 
     #iterate over n,m,k to find optimal answer (brute force)
     tasks = []
-    for n in range(500, 2000, 500):
-        for m, k in itertools.product(range(100, n//2, 100), range(100, n, 100)):
+    for n in range(1000, 50000, 1000):
+        for m, k in itertools.product(range(n//3, n//2, 100), range(500, n, 500)):
             tasks.append((n,m,k))
     
     answer = collect_results(answer, tasks)
