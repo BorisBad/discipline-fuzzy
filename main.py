@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import itertools
-#from timeit import default_timer as timer
+from timeit import default_timer as timer
 from multiprocessing import Pool
 #import os
 #import datetime
@@ -27,19 +27,35 @@ def find_stop_point(df:pd.DataFrame, n_h:np.ndarray, n_e:np.ndarray, c_h:np.ndar
         start = end+1
         end += k
         if (end > crash_point) and (start < crash_point):
-            end = len(df['Values'])
+            end = crash_point
     return [start, end, gs[0], gs[1]]
 
 def compute_g(list_of_timestamps:list, normal_hist:list, n_edges:list, crash_hist:list, c_edges:list):
     normal_sum = 0
     crash_sum = 0
+    mx_n_e = max(n_edges)
+    mn_n_e = min(n_edges)
+    l_n_e = len(n_edges)
+    l_n_h = len(normal_hist)
+    mx_c_e = max(c_edges)
+    mn_c_e = min(c_edges)
+    l_c_e = len(c_edges)
+    l_c_h = len(crash_hist)        
     for i in range(0,len(list_of_timestamps)):
-        if n_edges[0] <= list_of_timestamps[i] <= n_edges[-1]:
-            step = (n_edges[-1]-n_edges[0])/len(n_edges)
-            normal_sum += normal_hist[int(list_of_timestamps[i]//(step+n_edges[0]))]
-        if c_edges[0] <= list_of_timestamps[i] <= c_edges[-1]:
-            step = (c_edges[-1]-c_edges[0])/len(c_edges)
-            crash_sum += crash_hist[int(list_of_timestamps[i]//(step+c_edges[0]))]    
+        if mn_n_e <= list_of_timestamps[i] <= mx_n_e:
+            step = (mx_n_e-mn_n_e)/(l_n_e-1)
+            idx = int(list_of_timestamps[i]//(step+mn_n_e))
+            if idx == l_n_h:
+                normal_sum += normal_hist[idx-1]
+            else:
+                normal_sum += normal_hist[idx]
+        if mn_c_e <= list_of_timestamps[i] <= mx_c_e:
+            step = (mx_c_e-mn_c_e)/(l_c_e-1)
+            idx = int(list_of_timestamps[i]//(step+mn_c_e))
+            if idx == l_c_h:
+                normal_sum += crash_hist[idx-1]
+            else:
+                normal_sum += crash_hist[idx]  
     return [normal_sum, crash_sum]
 
 def sliding_window(items, size):
@@ -61,6 +77,7 @@ def find_answer(n:int,m:int,k:int):
         return
 
     #step = datetime.datetime.now()
+    #tm = timer()
     answer = pd.DataFrame(columns=['n','m','k','g1_1','g2_1','start_1','end_1','g1_2','g2_2','start_2','end_2'])
     normal_work = np.histogram(crash_1['Values'].iloc[0:n],bins=m)
     normal_work_hist = normal_work[0]/sum(normal_work[0])
@@ -86,6 +103,7 @@ def find_answer(n:int,m:int,k:int):
                     ignore_index=True
                 )
     #print(f"id{os.getpid()}:time{datetime.datetime.now()-step}, {n,m,k}")
+    #print(f"id{os.getpid()}:time{timer()-tm}, {n,m,k}")
     return answer
 
 def collect_results(answer:pd.DataFrame, tasks:list):
@@ -95,7 +113,7 @@ def collect_results(answer:pd.DataFrame, tasks:list):
             rez = pool_processes.starmap(find_answer,tasks)
     for i in range(0, len(rez)):
         answer = pd.concat([answer,rez[i]])
-        print('i {}: {}'.format(i, len(answer)))
+        #print('i {}: {}'.format(i, len(answer)))
     return answer
 
 def main():
@@ -109,12 +127,18 @@ def main():
 
     #iterate over n,m,k to find optimal answer (brute force)
     tasks = []
-    for n in range(1000, 50000, 1000):
-        for m, k in itertools.product(range(n//3, n//2, 100), range(500, n, 500)):
+    for n in range(1000, 7000, 1000):
+        for m, k in itertools.product(range(n//3, n//2, 100), range(1000, n, 1000)):
             tasks.append((n,m,k))
     
+    if __name__ =='__main__':
+        tmg = timer()
+        print(f"Startesd. approximate time is {len(tasks)*0.5/60/60} - {len(tasks)*0.5/60/60/glob_workers} hours")
     answer = collect_results(answer, tasks)
-    answer.to_csv('answer.csv', encoding='utf-8', sep=';', header=True)
+    if __name__ =='__main__':
+        print('Done')
+        print(f'Time taken: {(timer()-tmg)/60/60} hours')
+        answer.to_csv(f'answer - {len(tasks)}.csv', encoding='utf-8', sep=';', header=True)
     return
 
 main()
