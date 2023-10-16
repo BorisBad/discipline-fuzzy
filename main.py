@@ -3,8 +3,8 @@ import numpy as np
 import itertools
 from timeit import default_timer as timer
 from multiprocessing import Pool
-#import os
-#import datetime
+import os
+import datetime
 
 glob_workers = 4
 
@@ -62,7 +62,7 @@ def sliding_window(items, size):
     return [items[start:end] for start, end
             in zip(range(0, len(items) - size + 1), range(size, len(items) + 1))]
 
-def find_answer(n:int,m:int,k:int):
+def find_answer(n:int,m:int,k:int, iter:int):
     try:
         crash_1 = read_from_file('1.csv')
         crash_2 = read_from_file('2.csv')
@@ -78,6 +78,7 @@ def find_answer(n:int,m:int,k:int):
 
     #step = datetime.datetime.now()
     #tm = timer()
+    #str_log = "id:" + str(os.getpid())
     answer = pd.DataFrame(columns=['n','m','k','g1_1','g2_1','start_1','end_1','g1_2','g2_2','start_2','end_2'])
     normal_work = np.histogram(crash_1['Values'].iloc[0:n],bins=m)
     normal_work_hist = normal_work[0]/sum(normal_work[0])
@@ -86,8 +87,14 @@ def find_answer(n:int,m:int,k:int):
     crash_work = np.histogram(crash_1['Values'].iloc[crash_point-n:crash_point], m)
     crash_work_hist = crash_work[0]/sum(crash_work[0])
     crash_work_edges = crash_work[1]
+    #str_log += (timer-tm) + " hists time\n"
+    #tm = timer()
     res1 = find_stop_point(crash_1,normal_work_hist,normal_work_edges,crash_work_hist,crash_work_edges,k)
+    #str_log += (timer-tm) + " rez1 time\n"
+    #tm = timer()
     res2 = find_stop_point(crash_2,normal_work_hist,normal_work_edges,crash_work_hist,crash_work_edges,k)
+    #str_log += (timer-tm) + " rez2 time\n"
+    #tm = timer()
     answer = pd.concat(
                     [pd.DataFrame([[n,
                                     m,
@@ -102,8 +109,10 @@ def find_answer(n:int,m:int,k:int):
                                     res2[1]]], columns=answer.columns), answer],
                     ignore_index=True
                 )
+    #str_log += (timer-tm) + " concat time\n"
+    #print(str_log)
     #print(f"id{os.getpid()}:time{datetime.datetime.now()-step}, {n,m,k}")
-    #print(f"id{os.getpid()}:time{timer()-tm}, {n,m,k}")
+    #print(f"id:{os.getpid()}, iter:{iter}.Time{timer()-tm}, {n,m,k}")
     return answer
 
 def collect_results(answer:pd.DataFrame, tasks:list):
@@ -127,18 +136,27 @@ def main():
 
     #iterate over n,m,k to find optimal answer (brute force)
     tasks = []
-    for n in range(1000, 7000, 1000):
-        for m, k in itertools.product(range(n//3, n//2, 100), range(1000, n, 1000)):
-            tasks.append((n,m,k))
+    # for n in range(1000, 10000, 500):
+    #     for m, k in itertools.product(range(n//3, n//2, 100), range(500, n, 500)):
+    #         tasks.append((n,m,k))
     
+    for n in range(1000, 5000,1000):
+        for m in range(5,20,1):
+            for k in range(500,2000,500):
+                tasks.append((n,m,k, len(tasks)))
+
     if __name__ =='__main__':
         tmg = timer()
-        print(f"Startesd. approximate time is {len(tasks)*0.5/60/60} - {len(tasks)*0.5/60/60/glob_workers} hours")
+        print(f"Started. Num of iters is {len(tasks)} Approximate time is {len(tasks)*4/60/60} - {len(tasks)*0.5/60/60/glob_workers} hours")
     answer = collect_results(answer, tasks)
     if __name__ =='__main__':
         print('Done')
-        print(f'Time taken: {(timer()-tmg)/60/60} hours')
+        t_time = timer()-tmg
+        print(f'Time taken: {(t_time)/60/60} hours')
         answer.to_csv(f'answer - {len(tasks)}.csv', encoding='utf-8', sep=';', header=True)
+        with open('Attempts.csv', 'a') as atts:
+            atts.write(str(len(tasks))+";"+str(t_time/60/60)+"\n")
+         
     return
 
 main()
