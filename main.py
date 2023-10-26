@@ -198,7 +198,9 @@ def main():
             return
         
         tmg = timer()
-        print(f"Started. Num of iters is {len(tasks)} Approximate time is {len(tasks)*4/60/60} - {len(tasks)*0.5/60/60/glob_workers} hours")
+        print(f"Started. Num of iters is {len(tasks)}  time is  -  hours")
+        print(f'Approximate maximal time is {len(tasks)*4/60/60} hours.\nApproximal minimal is {len(tasks)*0.5/60/60/glob_workers} hours.')
+        print(f'Avg time is {0.005*len(tasks)+0.0045} hours.')
     
     answer = collect_results(answer, tasks)
     
