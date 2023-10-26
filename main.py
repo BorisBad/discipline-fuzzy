@@ -5,6 +5,7 @@ from timeit import default_timer as timer
 from multiprocessing import Pool
 import os
 import datetime
+import re
 
 glob_workers = 4
 
@@ -20,6 +21,7 @@ def find_stop_point(df:pd.DataFrame, n_h:np.ndarray, n_e:np.ndarray, c_h:np.ndar
     crash_point = len(df['Values']-1)
     while end < crash_point:
         gs = compute_g(df['Values'].iloc[start:end].to_list(),n_h,n_e,c_h,c_e)
+        #print(f'g1 {gs[0]}| g2 {gs[1]} end {end} cp {crash_point}')
         if gs[1] > gs[0]:
             break
         if gs != gl:
@@ -53,9 +55,9 @@ def compute_g(list_of_timestamps:list, normal_hist:list, n_edges:list, crash_his
             step = (mx_c_e-mn_c_e)/(l_c_e-1)
             idx = int(list_of_timestamps[i]//(step+mn_c_e))
             if idx == l_c_h:
-                normal_sum += crash_hist[idx-1]
+                crash_sum += crash_hist[idx-1]
             else:
-                normal_sum += crash_hist[idx]  
+                crash_sum += crash_hist[idx]  
     return [normal_sum, crash_sum]
 
 def sliding_window(items, size):
@@ -125,6 +127,38 @@ def collect_results(answer:pd.DataFrame, tasks:list):
         #print('i {}: {}'.format(i, len(answer)))
     return answer
 
+def count_all_hyperparams(tasks):
+    df = pd.DataFrame(columns=['n','m','k'])
+    
+    for file in os.listdir():
+        if re.search('^answer - \d\.csv$', file):
+            df = pd.concat([df, pd.read_csv(file, sep=';', usecols=['n', 'm', 'k'])])
+    
+    indexes = []
+    for task in tasks: 
+        i = df.loc[(df['n'] == task[0]) & (df['m'] == task[1]) & (df['k'] == task[2])].index
+        if len(i) != 0:
+            indexes.append(i[0])
+        #print(df.loc[(df['n'] == task[0]) & (df['m'] == task[1]) & (df['k'] == task[2])])
+        #print(df[(df['n'== task[0]]) and (df['m']==task[1]) and (df['k'] == task[2])].values)
+    
+    for i in sorted(indexes, reverse=True):
+        del tasks[i]
+    return tasks
+
+def y_n_dialog(message_y:str,message_n:str,message_predicate:str):
+    print(message_predicate)
+    inp = input()
+    while True:
+        if inp in ['n', 'no']:
+            print(message_n)
+            return False
+        elif inp in ['y', 'yes']:
+            print(message_y)
+            return True
+        else:
+            print('What?')
+
 def main():
     #optimal values
     # n = 3500
@@ -140,15 +174,34 @@ def main():
     #     for m, k in itertools.product(range(n//3, n//2, 100), range(500, n, 500)):
     #         tasks.append((n,m,k))
     
-    for n in range(1000, 5000,1000):
-        for m in range(5,20,1):
+
+    ##for n in range(1000, 5000,1000): #for 3.6k
+    ##for n in range(1000, 10000,1000): #for 16k
+    for n in range(1000, 10000,1000):
+        ##for m in range(n//10,n//5,5): #for 34k
+        for m in range(n//3,n//2,10):
             for k in range(500,2000,500):
                 tasks.append((n,m,k, len(tasks)))
 
     if __name__ =='__main__':
+        given_len = len(tasks)
+        tasks = count_all_hyperparams(tasks)
+        if (len(tasks)/given_len) < 0.70:
+            if not y_n_dialog(
+                        f'{len(tasks)} entries will be calculated',
+                        '',
+                        f'Warning {1-len(tasks)/given_len}% of entries have been excluded from tasks list, do you want to continue?y/n'
+                        ):
+                return
+
+        if not y_n_dialog('','',f'{len(tasks)} entries will be counted, is that ok? y/n'):
+            return
+        
         tmg = timer()
         print(f"Started. Num of iters is {len(tasks)} Approximate time is {len(tasks)*4/60/60} - {len(tasks)*0.5/60/60/glob_workers} hours")
+    
     answer = collect_results(answer, tasks)
+    
     if __name__ =='__main__':
         print('Done')
         t_time = timer()-tmg
