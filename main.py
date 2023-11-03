@@ -139,9 +139,7 @@ def count_all_hyperparams(tasks):
         i = df.loc[(df['n'] == task[0]) & (df['m'] == task[1]) & (df['k'] == task[2])].index
         if len(i) != 0:
             indexes.append(i[0])
-        #print(df.loc[(df['n'] == task[0]) & (df['m'] == task[1]) & (df['k'] == task[2])])
-        #print(df[(df['n'== task[0]]) and (df['m']==task[1]) and (df['k'] == task[2])].values)
-    
+
     for i in sorted(indexes, reverse=True):
         del tasks[i]
     return tasks
@@ -160,11 +158,6 @@ def y_n_dialog(message_y:str,message_n:str,message_predicate:str):
             print('What?')
 
 def main():
-    #optimal values
-    # n = 3500
-    # m = n//2
-    # k = 500
-
     #create df for answer
     answer = pd.DataFrame(columns=['n','m','k','g1_1','g2_1','start_1','end_1','g1_2','g2_2','start_2','end_2'])
 
@@ -174,18 +167,16 @@ def main():
     #     for m, k in itertools.product(range(n//3, n//2, 100), range(500, n, 500)):
     #         tasks.append((n,m,k))
     
-
-    ##for n in range(1000, 5000,1000): #for 3.6k
-    ##for n in range(1000, 10000,1000): #for 16k
-    for n in range(1000, 10000,1000):
-        ##for m in range(n//10,n//5,5): #for 34k
-        for m in range(n//3,n//2,10):
-            for k in range(500,2000,500):
+    #n 70 000 - max, 5 000 - step
+    
+    for n in range(10000, 70000, 1000):
+        for m in range(5,100,5):
+            for k in range(5000,n*3,1000):
                 tasks.append((n,m,k, len(tasks)))
 
     if __name__ =='__main__':
         given_len = len(tasks)
-        tasks = count_all_hyperparams(tasks)
+        #tasks = count_all_hyperparams(tasks)
         if (len(tasks)/given_len) < 0.70:
             if not y_n_dialog(
                         f'{len(tasks)} entries will be calculated',
@@ -198,9 +189,9 @@ def main():
             return
         
         tmg = timer()
-        print(f"Started. Num of iters is {len(tasks)}  time is  -  hours")
+        print(f"Started. Num of iters is {len(tasks)}. Started at {datetime.datetime.now().strftime('%H:%M:%S')}")
         print(f'Approximate maximal time is {len(tasks)*4/60/60} hours.\nApproximal minimal is {len(tasks)*0.5/60/60/glob_workers} hours.')
-        print(f'Avg time is {0.005*len(tasks)+0.0045} hours.')
+        print(f'Avg time is {0.0002*len(tasks)+0.0507} hours.')
     
     answer = collect_results(answer, tasks)
     
@@ -208,10 +199,10 @@ def main():
         print('Done')
         t_time = timer()-tmg
         print(f'Time taken: {(t_time)/60/60} hours')
+        print(f"Ended at {datetime.datetime.now().strftime('%H:%M:%S')}")
         answer.to_csv(f'answer - {len(tasks)}.csv', encoding='utf-8', sep=';', header=True)
         with open('Attempts.csv', 'a') as atts:
-            atts.write(str(len(tasks))+";"+str(t_time/60/60)+"\n")
-         
+            atts.write(str(len(tasks))+";"+str(t_time/60/60)+"\n") 
     return
 
 main()
